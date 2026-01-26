@@ -1,0 +1,8 @@
+
+{
+  "name": "SnapShare Rooms",
+  "description": "A seamless way to create rooms and collect photos from anyone via a simple link without registration.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
