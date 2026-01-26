@@ -114,7 +114,7 @@ npm install firebase
 npm run dev
 ```
 
-Visit `https://photo-api.gitlabserver.id.vn/`
+Visit `https://photo-api.gitlabserver.id.vn`
 
 ## Project Structure
 

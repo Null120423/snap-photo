@@ -75,7 +75,7 @@ service firebase.storage {
 npm run dev
 ```
 
-Visit `https://photo-api.gitlabserver.id.vn/` and you're done! 🎉
+Visit `https://photo-api.gitlabserver.id.vn` and you're done! 🎉
 
 ## Where's My User ID?
 

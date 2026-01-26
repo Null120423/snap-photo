@@ -75,7 +75,7 @@
    ```
 
 4. **Access Application**
-   - Navigate to `https://photo-api.gitlabserver.id.vn/`
+   - Navigate to `https://photo-api.gitlabserver.id.vn`
    - User ID will display on home page
    - Create rooms and upload photos
 
