@@ -2,20 +2,19 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "../components/Button";
-import MultiSelectToolbar from "../components/MultiSelectToolbar";
 import PhotoDetailPopup from "../components/PhotoDetailPopup";
 import PhotoSlideshow from "../components/PhotoSlideshow";
 import UploadProgressOverlay, {
-    UploadTask,
+  UploadTask,
 } from "../components/UploadProgressOverlay";
 import { fileUploadService } from "../services/fileUploadService";
 import { firebaseService } from "../services/firebaseService";
 import { Photo, Room } from "../types";
 import {
-    getDownloadedPhotos,
-    getOrInitUserId,
-    markAsDownloaded,
+  addMyRoom,
+  getDownloadedPhotos,
+  getOrInitUserId,
+  markAsDownloaded,
 } from "../utils/storage";
 
 const IconChevronLeft = () => (
@@ -120,61 +119,51 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
     };
   }, [roomId]);
 
-  const handlePhotoMouseDown = (photoId: string, photo: Photo) => {
-    if (isSelectMode) return;
-
-    touchStartRef.current = {
-      x: 0,
-      y: 0,
-      time: Date.now(),
-    };
-
-    // Long press detection (2 seconds)
-    touchTimeoutRef.current = setTimeout(() => {
-      setSelectedDetailPhoto(photo);
-    }, 2000);
-  };
-
-  const handlePhotoMouseUp = (photoId: string, photo: Photo) => {
-    if (!touchStartRef.current) return;
-
-    const pressDuration = Date.now() - touchStartRef.current.time;
-
-    // Clear long press timeout if released before 2 seconds
-    if (pressDuration < 2000) {
-      if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-
-      // Double tap detection
-      const now = Date.now();
-      if (now - lastTapRef.current < 300) {
-        // Double tap - Enter select mode
-        setIsSelectMode(true);
-        setSelectedIds(new Set([photoId]));
-        lastTapRef.current = 0;
-      } else {
-        // Single tap - Open slideshow
-        setSlideshowPhotoId(photoId);
-        setShowSlideshow(true);
-        lastTapRef.current = now;
-      }
+  const handlePhotoClick = (photoId: string, photo: Photo) => {
+    if (isSelectMode) {
+      // Toggle selection in select mode
+      setSelectedIds((prev) => {
+        const newSet = new Set(prev);
+        if (newSet.has(photoId)) {
+          newSet.delete(photoId);
+        } else {
+          newSet.add(photoId);
+        }
+        return newSet;
+      });
+    } else {
+      // Single tap - Open slideshow (iOS behavior)
+      setSlideshowPhotoId(photoId);
+      setShowSlideshow(true);
     }
-
-    touchStartRef.current = null;
   };
 
-  const handlePhotoTouchStart = (e: React.TouchEvent, photo: Photo) => {
-    if (isSelectMode) return;
+  const handlePhotoLongPress = (photoId: string, photo: Photo) => {
+    // Long press - Show detail popup with actions (iOS behavior)
+    setSelectedDetailPhoto(photo);
+  };
 
+  const handlePhotoTouchStart = (
+    e: React.TouchEvent,
+    photoId: string,
+    photo: Photo,
+  ) => {
     touchStartRef.current = {
       x: e.touches[0].clientX,
       y: e.touches[0].clientY,
       time: Date.now(),
     };
 
-    // Long press detection (2 seconds)
+    // Long press detection (600ms like iOS)
     touchTimeoutRef.current = setTimeout(() => {
-      setSelectedDetailPhoto(photo);
-    }, 2000);
+      if (!isSelectMode) {
+        handlePhotoLongPress(photoId, photo);
+        // Haptic feedback if available
+        if (navigator.vibrate) {
+          navigator.vibrate(10);
+        }
+      }
+    }, 600);
   };
 
   const handlePhotoTouchEnd = (
@@ -190,33 +179,14 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
         Math.pow(e.changedTouches[0].clientY - touchStartRef.current.y, 2),
     );
 
-    // Long press with drag - Enter select mode
-    if (pressDuration > 2000 && moveDistance > 10) {
-      if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
-      setIsSelectMode(true);
-      setSelectedIds(new Set([photoId]));
+    // Clear long press timeout
+    if (touchTimeoutRef.current) {
+      clearTimeout(touchTimeoutRef.current);
     }
-    // Long press released - show detail
-    else if (pressDuration >= 2000) {
-      // Detail already set by timeout
-    }
-    // Short press
-    else if (pressDuration < 500 && moveDistance < 10) {
-      if (touchTimeoutRef.current) clearTimeout(touchTimeoutRef.current);
 
-      // Double tap detection
-      const now = Date.now();
-      if (now - lastTapRef.current < 300) {
-        // Double tap - Enter select mode
-        setIsSelectMode(true);
-        setSelectedIds(new Set([photoId]));
-        lastTapRef.current = 0;
-      } else {
-        // Single tap - Open slideshow
-        setSlideshowPhotoId(photoId);
-        setShowSlideshow(true);
-        lastTapRef.current = now;
-      }
+    // If it's a quick tap (not a long press, not a drag)
+    if (pressDuration < 600 && moveDistance < 10) {
+      handlePhotoClick(photoId, photo);
     }
 
     touchStartRef.current = null;
@@ -227,6 +197,11 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
     const roomData = await firebaseService.getRoom(roomId);
     if (roomData) {
       setRoom(roomData);
+      // Auto join the room when visiting
+      if (!roomData.members?.includes(userId)) {
+        addMyRoom(roomId);
+        // You can also save to Firebase if needed
+      }
       const p = await firebaseService.getPhotos(roomId);
       setPhotos(p);
       setDownloadedIds(getDownloadedPhotos());
@@ -383,19 +358,19 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
 
   return (
     <div className='animate-in fade-in duration-300'>
-      <header className='mb-6 sticky top-0 bg-white/80 backdrop-blur-md z-30 py-2'>
-        <div className='flex justify-between items-center mb-4'>
+      <header className='mb-6 fixed left-0 right-0 px-6 top-0 bg-white/95 backdrop-blur-lg z-30 border-b border-gray-100 shadow-sm'>
+        <div className='flex justify-between items-center py-4'>
           <button
             onClick={() => navigate("/", { replace: true })}
-            className='hover:scale-110 transition-transform'>
+            className='hover:scale-110 transition-transform -ml-2'>
             <IconChevronLeft />
           </button>
-          <div className='flex items-center gap-4'>
+          <div className='flex items-center gap-3'>
             <button
               onClick={() => setGridCols((prev) => (prev === 4 ? 2 : prev + 1))}
-              className='text-gray-400 hover:text-[#FF7F50] transition-colors'>
+              className='text-gray-400 hover:text-[#FF7F50] transition-colors p-2'>
               <svg
-                className='w-6 h-6'
+                className='w-5 h-5'
                 fill='none'
                 stroke='currentColor'
                 viewBox='0 0 24 24'>
@@ -412,21 +387,27 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                 setIsSelectMode(!isSelectMode);
                 setSelectedIds(new Set());
               }}
-              className={`text-xs font-bold uppercase transition-colors ${isSelectMode ? "text-[#FF7F50]" : "text-gray-400 hover:text-[#FF7F50]"}`}>
-              {isSelectMode ? "Hủy" : "Chọn"}
+              className={`px-4 py-2 text-sm font-semibold rounded-lg transition-all ${
+                isSelectMode ?
+                  "bg-[#FF7F50] text-white"
+                : "text-[#FF7F50] hover:bg-[#FF7F50]/10"
+              }`}>
+              {isSelectMode ? "Xong" : "Chọn"}
             </button>
           </div>
         </div>
-        <h1 className='text-2xl font-black truncate'>{room.name}</h1>
-        <p className='text-[10px] font-bold text-[#FF7F50] uppercase tracking-widest mt-1'>
-          Mã phòng: {room.id}
-        </p>
+        <div className='pb-3'>
+          <h1 className='text-xl font-bold truncate'>{room.name}</h1>
+          <p className='text-xs text-gray-500 mt-0.5'>
+            {photos.length} ảnh • Mã: {room.id}
+          </p>
+        </div>
       </header>
 
-      <div className='space-y-8'>
+      <div className='space-y-8 pt-32 px-6'>
         {Object.entries(groupedPhotos).map(([date, items]) => (
           <div key={date}>
-            <h3 className='text-[10px] font-bold text-gray-300 uppercase tracking-[0.2em] mb-4 border-b pb-2'>
+            <h3 className='text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 px-1'>
               {date}
             </h3>
             <div
@@ -437,10 +418,9 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
               {(items as any[]).map((p) => (
                 <div
                   key={p.id}
-                  className={`relative aspect-square overflow-hidden bg-gray-100 transition-all rounded-lg cursor-pointer select-none ${isSelectMode && selectedIds.has(p.id) ? "scale-90 ring-4 ring-[#FF7F50]" : "hover:opacity-80"}`}
-                  onMouseDown={() => handlePhotoMouseDown(p.id, p)}
-                  onMouseUp={() => handlePhotoMouseUp(p.id, p)}
-                  onTouchStart={(e) => handlePhotoTouchStart(e, p)}
+                  className={`relative aspect-square overflow-hidden bg-gray-100 transition-all rounded-lg cursor-pointer select-none ${isSelectMode && selectedIds.has(p.id) ? "scale-95 ring-4 ring-[#FF7F50]" : "hover:opacity-90 active:scale-95"}`}
+                  onClick={() => handlePhotoClick(p.id, p)}
+                  onTouchStart={(e) => handlePhotoTouchStart(e, p.id, p)}
                   onTouchEnd={(e) => handlePhotoTouchEnd(e, p.id, p)}>
                   <img
                     src={p.url}
@@ -455,7 +435,7 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
                   )}
                   {isSelectMode && (
                     <div
-                      className={`absolute top-2 left-2 w-5 h-5 rounded-full border border-white flex items-center justify-center transition-all ${selectedIds.has(p.id) ? "bg-[#FF7F50]" : "bg-black/20"}`}>
+                      className={`absolute top-2 right-2 w-6 h-6 rounded-full border-2 border-white flex items-center justify-center transition-all shadow-lg ${selectedIds.has(p.id) ? "bg-[#FF7F50]" : "bg-white/60"}`}>
                       {selectedIds.has(p.id) && <IconCheck />}
                     </div>
                   )}
@@ -487,48 +467,38 @@ export const RoomPage: React.FC<RoomPageProps> = ({ roomId }) => {
       </div>
 
       {isSelectMode && selectedIds.size > 0 && (
-        <div className='fixed bottom-28 left-1/2 -translate-x-1/2 w-[90%] max-w-[400px] bg-white rounded-[2rem] p-4 custom-shadow z-50 animate-in slide-in-from-bottom duration-300'>
-          <Button
-            className='w-full h-14'
-            onClick={() => downloadPhotos(Array.from(selectedIds))}>
-            Tải {selectedIds.size} ảnh đã chọn
-          </Button>
+        <div className='fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50 animate-in slide-in-from-bottom backdrop-blur-lg bg-white/95'>
+          <div className='flex gap-3 max-w-md mx-auto'>
+            <button
+              onClick={() => downloadPhotos(Array.from(selectedIds))}
+              className='flex-1 bg-[#FF7F50] text-white py-3 rounded-xl font-semibold hover:bg-[#FF6B35] transition-colors active:scale-95 shadow-lg'>
+              Tải xuống ({selectedIds.size})
+            </button>
+            <button
+              onClick={() => {
+                const text = `Tôi vừa chia sẻ ${selectedIds.size} ảnh từ phòng ${room?.name}`;
+                if (navigator.share) {
+                  navigator.share({
+                    title: `${room?.name} - SnapShare`,
+                    text: text,
+                  });
+                } else {
+                  alert(text);
+                }
+              }}
+              className='px-6 py-3 border-2 border-[#FF7F50] text-[#FF7F50] rounded-xl font-semibold hover:bg-[#FF7F50]/10 transition-colors active:scale-95'>
+              Chia sẻ
+            </button>
+          </div>
         </div>
       )}
 
-      {isSelectMode && selectedIds.size > 0 && (
-        <MultiSelectToolbar
-          selectedCount={selectedIds.size}
-          onDownload={() => downloadPhotos(Array.from(selectedIds))}
-          onShare={() => {
-            const text = `Tôi vừa chia sẻ ${selectedIds.size} ảnh từ phòng ${room?.name}`;
-            if (navigator.share) {
-              navigator.share({
-                title: `${room?.name} - SnapShare`,
-                text: text,
-              });
-            } else {
-              alert(text);
-            }
-          }}
-          onDuplicate={() => {
-            navigator.clipboard.writeText(Array.from(selectedIds).join(", "));
-            alert("Đã copy ID ảnh");
-          }}
-          onDelete={() => {
-            if (
-              window.confirm(
-                `Xác nhận xóa ${selectedIds.size} ảnh này khỏi phòng?`,
-              )
-            ) {
-              alert("Tính năng xoá sẽ được cập nhật trong phiên bản tiếp theo");
-            }
-          }}
-          onCancel={() => {
-            setIsSelectMode(false);
-            setSelectedIds(new Set());
-          }}
-        />
+      {isSelectMode && selectedIds.size === 0 && (
+        <div className='fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-gray-200 p-4 z-50'>
+          <p className='text-center text-gray-400 text-sm'>
+            Chạm vào ảnh để chọn
+          </p>
+        </div>
       )}
 
       <input

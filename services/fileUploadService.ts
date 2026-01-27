@@ -108,21 +108,10 @@ class FileUploadService {
   }
 
   validateFile(file: File): { valid: boolean; error?: string } {
-    const maxSize = parseInt(
-      import.meta.env.VITE_MAX_FILE_SIZE || "10485760",
-      10,
-    );
     const allowedTypes = (
       import.meta.env.VITE_ALLOWED_FILE_TYPES ||
       "image/jpeg,image/png,image/webp,application/pdf"
     ).split(",");
-
-    if (file.size > maxSize) {
-      return {
-        valid: false,
-        error: `File size exceeds ${(maxSize / 1024 / 1024).toFixed(2)}MB limit`,
-      };
-    }
 
     if (!allowedTypes.includes(file.type)) {
       return {

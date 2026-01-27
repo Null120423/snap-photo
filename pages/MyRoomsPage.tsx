@@ -64,7 +64,9 @@ export const MyRoomsPage: React.FC = () => {
           <IconChevronLeft />
         </button>
         <h1 className='text-3xl font-extrabold mt-4'>Phòng của tôi</h1>
-        <p className='text-gray-400 text-sm'>Danh sách các phòng bạn đã tạo.</p>
+        <p className='text-gray-400 text-sm'>
+          Danh sách các phòng bạn đã tạo và tham gia.
+        </p>
       </header>
 
       <div className='space-y-4'>

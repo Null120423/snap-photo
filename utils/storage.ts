@@ -35,6 +35,45 @@ export const addMyRoom = (roomId: string) => {
   }
 };
 
+const USER_NAME_KEY = "snapshare_user_name";
+export const getUserName = (): string | null => {
+  return localStorage.getItem(USER_NAME_KEY);
+};
+
+export const setUserName = (name: string) => {
+  localStorage.setItem(USER_NAME_KEY, name);
+};
+
+export const hasUserName = (): boolean => {
+  return !!localStorage.getItem(USER_NAME_KEY);
+};
+
+const USER_PASSWORD_KEY = "snapshare_user_password";
+export const getUserPassword = (): string | null => {
+  return localStorage.getItem(USER_PASSWORD_KEY);
+};
+
+export const setUserPassword = (password: string) => {
+  localStorage.setItem(USER_PASSWORD_KEY, password);
+};
+
+export const isAuthenticated = (): boolean => {
+  return (
+    !!localStorage.getItem(USER_NAME_KEY) &&
+    !!localStorage.getItem(USER_PASSWORD_KEY)
+  );
+};
+
+export const saveAuth = (name: string, password: string) => {
+  setUserName(name);
+  setUserPassword(password);
+};
+
+export const clearAuth = () => {
+  localStorage.removeItem(USER_NAME_KEY);
+  localStorage.removeItem(USER_PASSWORD_KEY);
+};
+
 const DOWNLOADED_PHOTOS_KEY = "snapshare_downloaded_photos";
 export const getDownloadedPhotos = (): string[] => {
   const photos = localStorage.getItem(DOWNLOADED_PHOTOS_KEY);

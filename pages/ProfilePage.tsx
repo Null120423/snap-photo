@@ -3,9 +3,13 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-    getDownloadedPhotos,
-    getMyRooms,
-    getOrInitUserId,
+  clearAuth,
+  getDownloadedPhotos,
+  getMyRooms,
+  getOrInitUserId,
+  getUserName,
+  setDownloadedPhotos,
+  setUserName,
 } from "../utils/storage";
 
 const IconChevronLeft = () => (
@@ -58,11 +62,29 @@ export const ProfilePage: React.FC = () => {
   const userId = getOrInitUserId();
   const myRooms = getMyRooms();
   const [downloadedIds, setDownloadedIds] = useState(getDownloadedPhotos());
+  const [userNameDisplay, setUserNameDisplay] = useState(getUserName() || "");
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState(userNameDisplay);
 
   const handleClearHistory = () => {
     if (confirm("Bạn chắc chắn muốn xóa lịch sử tải xuống?")) {
       setDownloadedPhotos([]);
       setDownloadedIds([]);
+    }
+  };
+
+  const handleSaveName = () => {
+    if (tempName.trim()) {
+      setUserName(tempName.trim());
+      setUserNameDisplay(tempName.trim());
+      setIsEditingName(false);
+    }
+  };
+
+  const handleLogout = () => {
+    if (confirm("Bạn có chắc chắn muốn đăng xuất?")) {
+      clearAuth();
+      window.location.reload();
     }
   };
 
@@ -78,11 +100,45 @@ export const ProfilePage: React.FC = () => {
           <div className='w-24 h-24 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-500 mb-4 shadow-inner'>
             <IconUser />
           </div>
-          <h1 className='text-2xl font-black'>
-            Thiết bị #{userId.slice(0, 6)}
-          </h1>
+          {isEditingName ?
+            <div className='flex gap-2 w-full px-2'>
+              <input
+                type='text'
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                className='flex-1 px-3 py-2 border border-[#FF7F50] rounded-lg outline-none text-center font-bold'
+                autoFocus
+              />
+              <button
+                onClick={handleSaveName}
+                className='px-4 py-2 bg-[#FF7F50] text-white rounded-lg font-bold text-sm'>
+                Lưu
+              </button>
+              <button
+                onClick={() => {
+                  setTempName(userNameDisplay);
+                  setIsEditingName(false);
+                }}
+                className='px-4 py-2 bg-gray-300 text-gray-700 rounded-lg font-bold text-sm'>
+                Huỷ
+              </button>
+            </div>
+          : <div className='flex flex-col items-center'>
+              <h1 className='text-2xl font-black'>
+                {userNameDisplay || `Thiết bị #${userId.slice(0, 6)}`}
+              </h1>
+              <button
+                onClick={() => {
+                  setIsEditingName(true);
+                  setTempName(userNameDisplay);
+                }}
+                className='text-xs font-bold text-[#FF7F50] hover:text-[#FF6B35] uppercase mt-2'>
+                Chỉnh sửa tên
+              </button>
+            </div>
+          }
           <p className='text-xs font-bold text-gray-400 uppercase tracking-[0.2em] mt-2'>
-            Người dùng tạm thời
+            ID: {userId.slice(0, 12)}...
           </p>
         </div>
       </header>
@@ -131,14 +187,15 @@ export const ProfilePage: React.FC = () => {
             </p>
           )}
         </div>
+
+        <button
+          onClick={handleLogout}
+          className='w-full bg-red-500 text-white py-4 rounded-[2rem] font-bold hover:bg-red-600 transition-colors mt-8'>
+          Đăng xuất
+        </button>
       </div>
     </div>
   );
-};
-
-// Helper function to store downloaded photos
-const setDownloadedPhotos = (ids: string[]) => {
-  localStorage.setItem("snapshare_downloaded_photos", JSON.stringify(ids));
 };
 
 export default ProfilePage;

@@ -103,7 +103,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({
         </main>
 
         {showNav && (
-          <nav className='fixed bottom-8 left-1/2 -translate-x-1/2 w-[85%] max-w-[380px] h-20 bg-white rounded-[2.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.1)] z-40 flex items-center justify-around px-4 animate-in fade-in slide-in-from-bottom duration-300'>
+          <nav className='fixed bottom-10 left-1/2 -translate-x-1/2 w-[85%] max-w-[380px] h-20 bg-white rounded-[2.5rem] shadow-[0_15px_40px_rgba(0,0,0,0.1)] z-40 flex items-center justify-around px-4 animate-in fade-in slide-in-from-bottom duration-300'>
             <button
               onClick={() => navigate("/", { replace: true })}
               className={`transition-all ${isHome ? "text-[#FF7F50] scale-110" : "text-gray-300 hover:text-[#FF7F50]"}`}>
