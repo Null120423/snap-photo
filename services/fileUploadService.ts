@@ -26,7 +26,7 @@ export interface FileUploadResponse {
 export type UploadProgressHandler = (progress: number) => void;
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:3004";
+  import.meta.env.VITE_API_BASE_URL || "https://photo-api.gitlabserver.id.vn";
 
 class FileUploadService {
   private baseURL = `${API_BASE_URL}/upload`;
