@@ -12,7 +12,6 @@ import { getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { db, storage } from "../config/firebase";
 import { Photo, Room } from "../types";
 import { generateId } from "../utils/storage";
-
 export const firebaseService = {
   // 6-digit room code generation
   generateRoomCode: (): string => {
