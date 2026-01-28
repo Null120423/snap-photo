@@ -8,7 +8,15 @@ export const generateId = (): string => {
 };
 
 const USER_ID_KEY = "snapshare_user_id";
+const USER_NAME_KEY = "snapshare_user_name";
 export const getOrInitUserId = (): string => {
+  // Use userName as userId if it exists
+  const userName = localStorage.getItem(USER_NAME_KEY);
+  if (userName) {
+    return userName;
+  }
+
+  // Fallback to stored userId or generate new one
   let userId = localStorage.getItem(USER_ID_KEY);
   if (!userId) {
     userId = getDeviceId();
@@ -35,7 +43,6 @@ export const addMyRoom = (roomId: string) => {
   }
 };
 
-const USER_NAME_KEY = "snapshare_user_name";
 export const getUserName = (): string | null => {
   return localStorage.getItem(USER_NAME_KEY);
 };
