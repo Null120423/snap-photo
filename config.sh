@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Đường dẫn file cấu hình nginx của dự án
-CONF_SRC="./seo-free-admin.conf"
+CONF_SRC="./snap-photo.conf"
 
 # Đường dẫn thư mục cấu hình nginx trên server (thường là /etc/nginx/conf.d/)
 CONF_DEST="/etc/nginx/conf.d/snap-photo.conf"
